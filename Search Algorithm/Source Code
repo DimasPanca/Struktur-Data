@@ -1,0 +1,599 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <conio.h>
+#include <cctype>
+
+using namespace std;
+
+struct Paper {
+    string judul;
+    string sumber;
+    string penulis;
+    string tahun;
+    string abstrak;
+    string kesimpulan;
+    string link;
+};
+
+void clearScreen() {
+    system("cls");
+}
+
+vector<Paper> bacaDataCSV(const string& namaFile) {
+    vector<Paper> papers;
+    ifstream file(namaFile);
+    
+    if (!file.is_open()) {
+        cout << "Gagal membuka file: " << namaFile << endl;
+        return papers;
+    }
+    
+    string line;
+    // Skip header
+    getline(file, line);
+    
+    while (getline(file, line)) {
+        stringstream ss(line);
+        Paper paper;
+        string token;
+        
+        // Baca Judul
+        if (getline(ss, token, ';')) {
+            // Hapus koma di awal jika ada
+            if (!token.empty() && token[0] == ',') {
+                token.erase(0, 1);
+            }
+            paper.judul = token;
+        }
+        
+        // Baca Sumber
+        if (getline(ss, token, ';')) {
+            // Hapus koma di awal jika ada
+            if (!token.empty() && token[0] == ',') {
+                token.erase(0, 1);
+            }
+            paper.sumber = token;
+        }
+        
+        // Baca Penulis
+        if (getline(ss, token, ';')) {
+            // Hapus koma di awal jika ada
+            if (!token.empty() && token[0] == ',') {
+                token.erase(0, 1);
+            }
+            paper.penulis = token;
+        }
+        
+        // Baca Tahun
+        if (getline(ss, token, ';')) {
+            // Hapus koma di awal jika ada
+            if (!token.empty() && token[0] == ',') {
+                token.erase(0, 1);
+            }
+            paper.tahun = token;
+        }
+        
+        // Baca Abstrak
+        if (getline(ss, token, ';')) {
+            // Hapus koma di awal jika ada
+            if (!token.empty() && token[0] == ',') {
+                token.erase(0, 1);
+            }
+            paper.abstrak = token;
+        }
+        
+        // Baca Kesimpulan
+        if (getline(ss, token, ';')) {
+            // Hapus koma di awal jika ada
+            if (!token.empty() && token[0] == ',') {
+                token.erase(0, 1);
+            }
+            paper.kesimpulan = token;
+        }
+        
+        // Baca Link
+        if (getline(ss, token, ';')) {
+            // Hapus koma di awal jika ada
+            if (!token.empty() && token[0] == ',') {
+                token.erase(0, 1);
+            }
+            paper.link = token;
+        }
+        
+        papers.push_back(paper);
+    }
+    
+    file.close();
+    return papers;
+}
+
+// Fungsi Linear Search berdasarkan judul
+vector<Paper> linearSearchByJudul(const vector<Paper>& papers, const string& keyword) {
+    vector<Paper> results;
+    string keywordLower = keyword;
+    transform(keywordLower.begin(), keywordLower.end(), keywordLower.begin(), ::tolower);
+    
+    for (const Paper& paper : papers) {
+        string judulLower = paper.judul;
+        transform(judulLower.begin(), judulLower.end(), judulLower.begin(), ::tolower);
+        
+        if (judulLower.find(keywordLower) != string::npos) {
+            results.push_back(paper);
+        }
+    }
+    
+    return results;
+}
+
+// Fungsi Linear Search berdasarkan tahun
+vector<Paper> linearSearchByTahun(const vector<Paper>& papers, const string& keyword) {
+    vector<Paper> results;
+    
+    for (const Paper& paper : papers) {
+        if (paper.tahun == keyword) {
+            results.push_back(paper);
+        }
+    }
+    
+    return results;
+}
+
+// Fungsi Linear Search berdasarkan penulis
+vector<Paper> linearSearchByPenulis(const vector<Paper>& papers, const string& keyword) {
+    vector<Paper> results;
+    string keywordLower = keyword;
+    transform(keywordLower.begin(), keywordLower.end(), keywordLower.begin(), ::tolower);
+    
+    for (const Paper& paper : papers) {
+        string penulisLower = paper.penulis;
+        transform(penulisLower.begin(), penulisLower.end(), penulisLower.begin(), ::tolower);
+        
+        if (penulisLower.find(keywordLower) != string::npos) {
+            results.push_back(paper);
+        }
+    }
+    
+    return results;
+}
+
+// Fungsi untuk mengurutkan paper berdasarkan judul (untuk Binary Search)
+bool compareByJudul(const Paper& a, const Paper& b) {
+    string aLower = a.judul;
+    string bLower = b.judul;
+    transform(aLower.begin(), aLower.end(), aLower.begin(), ::tolower);
+    transform(bLower.begin(), bLower.end(), bLower.begin(), ::tolower);
+    return aLower < bLower;
+}
+
+// Fungsi untuk mengurutkan paper berdasarkan tahun (untuk Binary Search)
+bool compareByTahun(const Paper& a, const Paper& b) {
+    return a.tahun < b.tahun;
+}
+
+// Fungsi untuk mengurutkan paper berdasarkan penulis (untuk Binary Search)
+bool compareByPenulis(const Paper& a, const Paper& b) {
+    string aLower = a.penulis;
+    string bLower = b.penulis;
+    transform(aLower.begin(), aLower.end(), aLower.begin(), ::tolower);
+    transform(bLower.begin(), bLower.end(), bLower.begin(), ::tolower);
+    return aLower < bLower;
+}
+
+// Fungsi Binary Search berdasarkan judul
+vector<Paper> binarySearchByJudul(vector<Paper>& papers, const string& keyword) {
+    vector<Paper> results;
+    string keywordLower = keyword;
+    transform(keywordLower.begin(), keywordLower.end(), keywordLower.begin(), ::tolower);
+    
+    // Sort papers berdasarkan judul
+    sort(papers.begin(), papers.end(), compareByJudul);
+    
+    // Binary search untuk menemukan paper dengan judul yang mengandung keyword
+    // Catatan: Binary search tidak ideal untuk pencarian substring
+    // Ini adalah pendekatan sederhana untuk demonstrasi
+    int left = 0;
+    int right = papers.size() - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        string judulLower = papers[mid].judul;
+        transform(judulLower.begin(), judulLower.end(), judulLower.begin(), ::tolower);
+        
+        if (judulLower.find(keywordLower) != string::npos) {
+            // Temukan semua paper yang mengandung keyword
+            results.push_back(papers[mid]);
+            
+            // Periksa ke kiri
+            int i = mid - 1;
+            while (i >= 0) {
+                string tempJudulLower = papers[i].judul;
+                transform(tempJudulLower.begin(), tempJudulLower.end(), tempJudulLower.begin(), ::tolower);
+                if (tempJudulLower.find(keywordLower) != string::npos) {
+                    results.push_back(papers[i]);
+                }
+                i--;
+            }
+            
+            // Periksa ke kanan
+            i = mid + 1;
+            while (i < papers.size()) {
+                string tempJudulLower = papers[i].judul;
+                transform(tempJudulLower.begin(), tempJudulLower.end(), tempJudulLower.begin(), ::tolower);
+                if (tempJudulLower.find(keywordLower) != string::npos) {
+                    results.push_back(papers[i]);
+                }
+                i++;
+            }
+            
+            break;
+        } else if (judulLower < keywordLower) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    
+    return results;
+}
+
+// Fungsi Binary Search berdasarkan tahun
+vector<Paper> binarySearchByTahun(vector<Paper>& papers, const string& keyword) {
+    vector<Paper> results;
+    
+    // Sort papers berdasarkan tahun
+    sort(papers.begin(), papers.end(), compareByTahun);
+    
+    int left = 0;
+    int right = papers.size() - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        
+        if (papers[mid].tahun == keyword) {
+            // Temukan semua paper dengan tahun yang sama
+            results.push_back(papers[mid]);
+            
+            // Periksa ke kiri
+            int i = mid - 1;
+            while (i >= 0 && papers[i].tahun == keyword) {
+                results.push_back(papers[i]);
+                i--;
+            }
+            
+            // Periksa ke kanan
+            i = mid + 1;
+            while (i < papers.size() && papers[i].tahun == keyword) {
+                results.push_back(papers[i]);
+                i++;
+            }
+            
+            break;
+        } else if (papers[mid].tahun < keyword) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    
+    return results;
+}
+
+// Fungsi Binary Search berdasarkan penulis
+vector<Paper> binarySearchByPenulis(vector<Paper>& papers, const string& keyword) {
+    vector<Paper> results;
+    string keywordLower = keyword;
+    transform(keywordLower.begin(), keywordLower.end(), keywordLower.begin(), ::tolower);
+    
+    // Sort papers berdasarkan penulis
+    sort(papers.begin(), papers.end(), compareByPenulis);
+    
+    // Binary search untuk menemukan paper dengan penulis yang mengandung keyword
+    // Catatan: Binary search tidak ideal untuk pencarian substring
+    // Ini adalah pendekatan sederhana untuk demonstrasi
+    int left = 0;
+    int right = papers.size() - 1;
+    
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        string penulisLower = papers[mid].penulis;
+        transform(penulisLower.begin(), penulisLower.end(), penulisLower.begin(), ::tolower);
+        
+        if (penulisLower.find(keywordLower) != string::npos) {
+            // Temukan semua paper yang mengandung keyword
+            results.push_back(papers[mid]);
+            
+            // Periksa ke kiri
+            int i = mid - 1;
+            while (i >= 0) {
+                string tempPenulisLower = papers[i].penulis;
+                transform(tempPenulisLower.begin(), tempPenulisLower.end(), tempPenulisLower.begin(), ::tolower);
+                if (tempPenulisLower.find(keywordLower) != string::npos) {
+                    results.push_back(papers[i]);
+                }
+                i--;
+            }
+            
+            // Periksa ke kanan
+            i = mid + 1;
+            while (i < papers.size()) {
+                string tempPenulisLower = papers[i].penulis;
+                transform(tempPenulisLower.begin(), tempPenulisLower.end(), tempPenulisLower.begin(), ::tolower);
+                if (tempPenulisLower.find(keywordLower) != string::npos) {
+                    results.push_back(papers[i]);
+                }
+                i++;
+            }
+            
+            break;
+        } else if (penulisLower < keywordLower) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+    
+    return results;
+}
+
+// Fungsi untuk menampilkan menu detail paper
+void tampilkanDetailPaper(const Paper& paper) {
+    int pilihan;
+    do {
+        clearScreen();
+        cout << "====================================" << endl;
+        cout << "          DETAIL PAPER              " << endl;
+        cout << "====================================" << endl;
+        cout << "Judul      : " << paper.judul << endl;
+        cout << "Sumber     : " << paper.sumber << endl;
+        cout << "Penulis    : " << paper.penulis << endl;
+        cout << "Tahun      : " << paper.tahun << endl;
+        cout << "====================================" << endl;
+        cout << "1. Lihat Abstrak" << endl;
+        cout << "2. Lihat Kesimpulan" << endl;
+        cout << "3. Lihat Link" << endl;
+        cout << "4. Kembali" << endl;
+        cout << "====================================" << endl;
+        cout << "Pilihan Anda: ";
+        cin >> pilihan;
+        
+        switch (pilihan) {
+            case 1:
+                clearScreen();
+                cout << "====================================" << endl;
+                cout << "              ABSTRAK              " << endl;
+                cout << "====================================" << endl;
+                cout << paper.abstrak << endl;
+                cout << "====================================" << endl;
+                cout << "Tekan sembarang tombol untuk kembali...";
+                getch();
+                break;
+            case 2:
+                clearScreen();
+                cout << "====================================" << endl;
+                cout << "             KESIMPULAN            " << endl;
+                cout << "====================================" << endl;
+                cout << paper.kesimpulan << endl;
+                cout << "====================================" << endl;
+                cout << "Tekan sembarang tombol untuk kembali...";
+                getch();
+                break;
+            case 3:
+                clearScreen();
+                cout << "====================================" << endl;
+                cout << "               LINK                " << endl;
+                cout << "====================================" << endl;
+                cout << paper.link << endl;
+                cout << "====================================" << endl;
+                cout << "Tekan sembarang tombol untuk kembali...";
+                getch();
+                break;
+            case 4:
+                // Kembali ke menu sebelumnya
+                break;
+            default:
+                cout << "Pilihan tidak valid. Tekan sembarang tombol untuk melanjutkan...";
+                getch();
+        }
+    } while (pilihan != 4);
+}
+
+// Fungsi untuk menampilkan hasil pencarian
+void tampilkanHasilPencarian(const vector<Paper>& results) {
+    if (results.empty()) {
+        cout << "Tidak ada hasil yang ditemukan." << endl;
+        cout << "Tekan sembarang tombol untuk kembali...";
+        getch();
+        return;
+    }
+    
+    int pilihan;
+    do {
+        clearScreen();
+        cout << "====================================" << endl;
+        cout << "         HASIL PENCARIAN           " << endl;
+        cout << "====================================" << endl;
+        cout << "Ditemukan " << results.size() << " hasil:" << endl;
+        for (int i = 0; i < results.size(); i++) {
+            cout << i + 1 << ". " << results[i].judul << " (" << results[i].tahun << ")" << endl;
+        }
+        cout << results.size() + 1 << ". Kembali ke menu utama" << endl;
+        cout << "====================================" << endl;
+        cout << "Pilih paper untuk melihat detail (1-" << results.size() << ") atau " << results.size() + 1 << " untuk kembali: ";
+        cin >> pilihan;
+        
+        if (pilihan >= 1 && pilihan <= results.size()) {
+            tampilkanDetailPaper(results[pilihan - 1]);
+        } else if (pilihan != results.size() + 1) {
+            cout << "Pilihan tidak valid. Tekan sembarang tombol untuk melanjutkan...";
+            getch();
+        }
+    } while (pilihan != results.size() + 1);
+}
+
+// Fungsi untuk melakukan pencarian
+void cariPaper(vector<Paper>& papers, int metodePencarian, int kriteriaPencarian) {
+    string keyword;
+    vector<Paper> results;
+    
+    clearScreen();
+    cout << "====================================" << endl;
+    if (metodePencarian == 1) {
+        cout << "        LINEAR SEARCH             " << endl;
+    } else {
+        cout << "        BINARY SEARCH             " << endl;
+    }
+    cout << "====================================" << endl;
+    
+    switch (kriteriaPencarian) {
+        case 1:
+            cout << "Masukkan judul paper yang dicari: ";
+            cin.ignore();
+            getline(cin, keyword);
+            
+            if (metodePencarian == 1) {
+                results = linearSearchByJudul(papers, keyword);
+            } else {
+                results = binarySearchByJudul(papers, keyword);
+            }
+            break;
+        case 2:
+            cout << "Masukkan tahun terbit paper yang dicari: ";
+            cin.ignore();
+            getline(cin, keyword);
+            
+            if (metodePencarian == 1) {
+                results = linearSearchByTahun(papers, keyword);
+            } else {
+                results = binarySearchByTahun(papers, keyword);
+            }
+            break;
+        case 3:
+            cout << "Masukkan nama penulis paper yang dicari: ";
+            cin.ignore();
+            getline(cin, keyword);
+            
+            if (metodePencarian == 1) {
+                results = linearSearchByPenulis(papers, keyword);
+            } else {
+                results = binarySearchByPenulis(papers, keyword);
+            }
+            break;
+    }
+    
+    tampilkanHasilPencarian(results);
+}
+
+// Fungsi untuk menampilkan menu metode pencarian
+void menuMetodePencarian(vector<Paper>& papers, int kriteriaPencarian) {
+    int pilihan;
+    do {
+        clearScreen();
+        cout << "====================================" << endl;
+        cout << "       PILIH METODE PENCARIAN      " << endl;
+        cout << "====================================" << endl;
+        cout << "1. Linear Search" << endl;
+        cout << "2. Binary Search" << endl;
+        cout << "3. Kembali" << endl;
+        cout << "====================================" << endl;
+        cout << "Pilihan Anda: ";
+        cin >> pilihan;
+        
+        switch (pilihan) {
+            case 1:
+                cariPaper(papers, 1, kriteriaPencarian);
+                break;
+            case 2:
+                cariPaper(papers, 2, kriteriaPencarian);
+                break;
+            case 3:
+                // Kembali ke menu sebelumnya
+                break;
+            default:
+                cout << "Pilihan tidak valid. Tekan sembarang tombol untuk melanjutkan...";
+                getch();
+        }
+    } while (pilihan != 3);
+}
+
+// Fungsi untuk menampilkan menu kriteria pencarian
+void menuKriteriaPencarian(vector<Paper>& papers) {
+    int pilihan;
+    do {
+        clearScreen();
+        cout << "====================================" << endl;
+        cout << "      PILIH KRITERIA PENCARIAN     " << endl;
+        cout << "====================================" << endl;
+        cout << "1. Judul Paper" << endl;
+        cout << "2. Tahun Terbit" << endl;
+        cout << "3. Nama Penulis" << endl;
+        cout << "4. Kembali" << endl;
+        cout << "====================================" << endl;
+        cout << "Pilihan Anda: ";
+        cin >> pilihan;
+        
+        switch (pilihan) {
+            case 1:
+            case 2:
+            case 3:
+                menuMetodePencarian(papers, pilihan);
+                break;
+            case 4:
+                // Kembali ke menu utama
+                break;
+            default:
+                cout << "Pilihan tidak valid. Tekan sembarang tombol untuk melanjutkan...";
+                getch();
+        }
+    } while (pilihan != 4);
+}
+
+// Fungsi menu utama
+void menuUtama() {
+    string namaFile = "dataset.csv"; // Nama file CSV yang telah diunduh
+    vector<Paper> papers = bacaDataCSV(namaFile);
+    
+    if (papers.empty()) {
+        cout << "Data kosong atau file tidak ditemukan." << endl;
+        cout << "Pastikan file '" << namaFile << "' ada di folder yang sama dengan program ini." << endl;
+        cout << "Tekan sembarang tombol untuk keluar...";
+        getch();
+        return;
+    }
+    
+    int pilihan;
+    do {
+        clearScreen();
+        cout << "====================================" << endl;
+        cout << "        PROGRAM PENCARIAN PAPER    " << endl;
+        cout << "====================================" << endl;
+        cout << "Total data: " << papers.size() << " paper" << endl;
+        cout << "====================================" << endl;
+        cout << "1. Cari Paper" << endl;
+        cout << "2. Keluar" << endl;
+        cout << "====================================" << endl;
+        cout << "Pilihan Anda: ";
+        cin >> pilihan;
+        
+        switch (pilihan) {
+            case 1:
+                menuKriteriaPencarian(papers);
+                break;
+            case 2:
+                clearScreen();
+                cout << "Terima kasih telah menggunakan program ini!" << endl;
+                break;
+            default:
+                cout << "Pilihan tidak valid. Tekan sembarang tombol untuk melanjutkan...";
+                getch();
+        }
+    } while (pilihan != 2);
+}
+
+int main() {
+    menuUtama();
+    return 0;
+}
